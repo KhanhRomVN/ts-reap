@@ -1,0 +1,61 @@
+{
+  "name": "@khanhromvn/ts-reap",
+  "version": "1.0.1",
+  "description": "Advanced TypeScript/JavaScript language server that detects project-wide unused exports, functions, and variables — the gap vanilla tsserver leaves open.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "ts-reap": "dist/server.js",
+    "ts-reap-check": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p .",
+    "dev": "tsx src/server.ts --stdio",
+    "start": "node dist/server.js --stdio",
+    "lint": "eslint src",
+    "link": "rm -rf ~/.npm-global/lib/node_modules/@khanhromvn/ts-reap && rm -f ~/.npm-global/bin/ts-reap && npm run build && npm link"
+  },
+  "keywords": [
+    "lsp",
+    "language-server",
+    "typescript",
+    "javascript",
+    "unused-exports",
+    "dead-code",
+    "static-analysis",
+    "ts-morph",
+    "code-quality"
+  ],
+  "author": "khanhromvn",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/khanhromvn/ts-reap.git"
+  },
+  "bugs": {
+    "url": "https://github.com/khanhromvn/ts-reap/issues"
+  },
+  "homepage": "https://github.com/khanhromvn/ts-reap#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ts-morph": "^23.0.0",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.11"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.0",
+    "eslint": "^9.0.0",
+    "@eslint/js": "^9.0.0",
+    "typescript-eslint": "^8.0.0",
+    "globals": "^15.0.0",
+    "tsx": "^4.7.0"
+  }
+}
