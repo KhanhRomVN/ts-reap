@@ -5,8 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "ts-reap": "dist/server.js",
-    "ts-reap-check": "dist/cli.js"
+    "ts-reap": "dist/cli/main.js"
   },
   "files": [
     "dist",

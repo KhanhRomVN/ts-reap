@@ -6,13 +6,14 @@ import {
   TextDocumentSyncKind,
   InitializeParams,
   InitializeResult,
-  Diagnostic,
-  DiagnosticSeverity,
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
+import { fileURLToPath } from "url";
 import * as path from "path";
 import * as fs from "fs";
-import { ProjectAnalyzer, UnusedFinding } from "./analyzer";
+import { ProjectAnalyzer } from "../core/analyzer";
+import type { UnusedFinding } from "../core/types";
+import { toDiagnostic } from "./diagnostics";
 
 const connection = createConnection(ProposedFeatures.all);
 const documents = new TextDocuments(TextDocument);
@@ -26,9 +27,18 @@ function findTsConfig(rootPath: string): string | undefined {
   return fs.existsSync(candidate) ? candidate : undefined;
 }
 
+function uriToPath(uri: string): string {
+  try {
+    return fileURLToPath(uri);
+  } catch {
+    return uri.replace("file://", "");
+  }
+}
+
 connection.onInitialize((params: InitializeParams): InitializeResult => {
-  const rootPath =
-    params.rootUri?.replace("file://", "") ?? params.rootPath ?? process.cwd();
+  const rootPath = params.rootUri
+    ? uriToPath(params.rootUri)
+    : (params.rootPath ?? process.cwd());
 
   const tsConfigFilePath = findTsConfig(rootPath);
   const initOptions = params.initializationOptions as
@@ -60,28 +70,14 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
   };
 });
 
-function scheduleAnalysis(changedFilePath?: string) {
+function scheduleAnalysis() {
   if (!analyzer) return;
   if (debounceTimer) clearTimeout(debounceTimer);
 
-  debounceTimer = setTimeout(() => {
-    runAnalysisAndPublish(changedFilePath);
-  }, DEBOUNCE_MS);
+  debounceTimer = setTimeout(runAnalysisAndPublish, DEBOUNCE_MS);
 }
 
-function toDiagnostic(finding: UnusedFinding): Diagnostic {
-  return {
-    severity: DiagnosticSeverity.Warning,
-    range: {
-      start: { line: finding.startLine, character: finding.startChar },
-      end: { line: finding.endLine, character: finding.endChar },
-    },
-    message: finding.message,
-    source: "ts-reap",
-  };
-}
-
-function runAnalysisAndPublish(_changedFilePath?: string) {
+function runAnalysisAndPublish() {
   if (!analyzer) return;
 
   try {
@@ -98,8 +94,7 @@ function runAnalysisAndPublish(_changedFilePath?: string) {
     }
 
     for (const doc of documents.all()) {
-      const filePath = doc.uri.replace("file://", "");
-      const findings = byFile.get(filePath) ?? [];
+      const findings = byFile.get(uriToPath(doc.uri)) ?? [];
       connection.sendDiagnostics({
         uri: doc.uri,
         diagnostics: findings.map(toDiagnostic),
@@ -111,19 +106,17 @@ function runAnalysisAndPublish(_changedFilePath?: string) {
 }
 
 documents.onDidOpen((event) => {
-  const filePath = event.document.uri.replace("file://", "");
-  analyzer?.updateFile(filePath, event.document.getText());
-  scheduleAnalysis(filePath);
+  analyzer?.updateFile(uriToPath(event.document.uri), event.document.getText());
+  scheduleAnalysis();
 });
 
 documents.onDidChangeContent((event) => {
-  const filePath = event.document.uri.replace("file://", "");
-  analyzer?.updateFile(filePath, event.document.getText());
-  scheduleAnalysis(filePath);
+  analyzer?.updateFile(uriToPath(event.document.uri), event.document.getText());
+  scheduleAnalysis();
 });
 
-documents.onDidSave((event) => {
-  scheduleAnalysis(event.document.uri.replace("file://", ""));
+documents.onDidSave(() => {
+  scheduleAnalysis();
 });
 
 documents.listen(connection);

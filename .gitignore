@@ -11,3 +11,5 @@ debug-*.ts
 
 # NPM
 *.tgz
+
+temp
